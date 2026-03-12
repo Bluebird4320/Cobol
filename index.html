@@ -3596,10 +3596,9 @@ async function startChapterTest(chId, title, lang, btn) {
 answerは正解の0〜2のインデックス。問題は実務直結の内容にしてください。`;
 
   try {
-    const raw = await callGemini(prompt);
-    const m = raw.match(/\{[\s\S]*\}/);
-    if (!m) throw new Error('JSON取得失敗');
-    const data = JSON.parse(m[0]);
+    const raw = await callGemini(prompt, true);
+    const data = parseJSON(raw);
+    if (!data) throw new Error('JSON取得失敗');
     renderChapterTest(sec, chId, title, data.questions);
     btn.textContent = '📝 テスト回答中...';
   } catch(e) {
@@ -3988,11 +3987,14 @@ function saveRewardEdit() {
 /* =========================================
    GEMINI API
    ========================================= */
-async function callGemini(prompt) {
+async function callGemini(prompt, jsonMode = false) {
   if (!API_KEY) {
     openKeyModal();
     throw new Error('APIキーが未設定です。⚙️ から設定してください');
   }
+  const config = jsonMode
+    ? { temperature: 0.75, maxOutputTokens: 1600, responseMimeType: 'application/json' }
+    : { temperature: 0.75, maxOutputTokens: 1600 };
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
     {
@@ -4000,7 +4002,7 @@ async function callGemini(prompt) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.75, maxOutputTokens: 1600 }
+        generationConfig: config
       })
     }
   );
@@ -4011,6 +4013,10 @@ async function callGemini(prompt) {
 
 function parseJSON(raw) {
   try {
+    // ```json ... ``` ブロックを優先的に抽出
+    const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fence) return JSON.parse(fence[1].trim());
+    // { } で囲まれた最初のJSONオブジェクトを抽出
     const m = raw.match(/\{[\s\S]*\}/);
     return m ? JSON.parse(m[0]) : null;
   } catch { return null; }
@@ -4027,7 +4033,7 @@ async function genQ(type) {
   const loader = appendAI(chatId, loading());
 
   try {
-    const raw = await callGemini(buildPrompt(type, theme));
+    const raw = await callGemini(buildPrompt(type, theme), true);
     loader.remove();
     const q = parseJSON(raw);
     if (!q) throw new Error('JSONパースに失敗しました');
