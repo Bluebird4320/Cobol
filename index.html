@@ -3186,7 +3186,13 @@ END-EXEC</pre>
          💬 AIチャット
     ============================= -->
     <div class="panel" id="panel-chat">
-      <div class="section-title">💬 AIに質問する</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="section-title" style="margin-bottom:0">💬 AIに質問する</div>
+        <button class="btn" style="font-size:12px;padding:4px 10px;opacity:0.7" onclick="clearChatHistory()">🔄 リセット</button>
+      </div>
+      <div id="chatApiNote" style="display:none;background:var(--surface2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--text2)">
+        ⚙️ <a href="#" onclick="openKeyModal();return false" style="color:var(--accent)">APIキーを設定</a>するとAIと会話できます
+      </div>
       <div class="chat-window" id="chatAI">
         <div class="msg ai"><div class="msg-avatar">🤖</div>
           <div class="msg-bubble">
@@ -4070,6 +4076,11 @@ function go(tab) {
   document.getElementById('panel-' + tab).classList.add('active');
   document.getElementById('tab-' + tab).classList.add('active');
   document.getElementById('chatBar').classList.toggle('visible', tab === 'chat');
+  // チャットタブ: APIキー未設定時に案内バナーを表示
+  if (tab === 'chat') {
+    const note = document.getElementById('chatApiNote');
+    if (note) note.style.display = API_KEY ? 'none' : 'block';
+  }
 }
 
 /* =========================================
@@ -4241,12 +4252,11 @@ function saveRewardEdit() {
 /* =========================================
    GEMINI API
    ========================================= */
-async function callGemini(prompt, jsonMode = false) {
+// 問題生成用（最安値モデル・短いトークン）
+async function callGemini(prompt) {
   if (!API_KEY) throw new Error('NO_API_KEY');
-  // gemini-2.0-flash-lite = 最安値モデル、500トークンで十分
-  const model = 'gemini-2.0-flash-lite';
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${API_KEY}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -4259,6 +4269,37 @@ async function callGemini(prompt, jsonMode = false) {
   if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || 'API Error'); }
   const d = await res.json();
   return d.candidates[0].content.parts[0].text;
+}
+
+// AIチャット用（高品質モデル・長いトークン・会話履歴対応）
+let chatHistory = [];
+
+async function callGeminiChat(systemPrompt, userMessage) {
+  if (!API_KEY) throw new Error('APIキーが未設定です。⚙️ から設定してください');
+
+  // 会話履歴にユーザーメッセージを追加
+  chatHistory.push({ role: 'user', parts: [{ text: userMessage }] });
+
+  // 直近10往復だけ送信してトークン節約
+  const recentHistory = chatHistory.slice(-20);
+
+  const body = {
+    system_instruction: { parts: [{ text: systemPrompt }] },
+    contents: recentHistory,
+    generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+  };
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+  );
+  if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || 'API Error'); }
+  const d = await res.json();
+  const reply = d.candidates[0].content.parts[0].text;
+
+  // 返答を履歴に追加
+  chatHistory.push({ role: 'model', parts: [{ text: reply }] });
+  return reply;
 }
 
 function parseJSON(raw) {
@@ -4451,30 +4492,61 @@ function addNextBtn(fbId, type) {
 /* =========================================
    AI CHAT
    ========================================= */
+const CHAT_SYSTEM = `あなたはCOBOLと単体テストの専門家です。COBOLの案件に参画しているエンジニアの質問に答えてください。
+- 回答は日本語で、簡潔かつわかりやすく
+- COBOLコードは \`\`\` で囲んで表示してください
+- 親しみやすいトーンで
+- 会話の文脈を踏まえて回答してください`;
+
 async function sendChat() {
   const input = document.getElementById('chatInput');
   const txt   = input.value.trim();
   if (!txt) return;
+
+  // APIキー未設定なら設定画面を開く
+  if (!API_KEY) {
+    openKeyModal();
+    appendAI('chatAI', '⚙️ APIキーを設定するとAIチャットが使えます！');
+    return;
+  }
+
   input.value = '';
   input.style.height = 'auto';
 
   appendUser('chatAI', txt);
   const loader = appendAI('chatAI', loading());
 
-  const sys = `あなたはCOBOLと単体テストの専門家です。
-COBOLの案件に参画しているエンジニアの質問に答えてください。
-- 回答は日本語で、簡潔かつわかりやすく
-- COBOLコードはそのまま表示（Markdown不要）
-- 親しみやすいトーンで`;
-
   try {
-    const ans = await callGemini(sys + '\n\n質問: ' + txt);
+    const ans = await callGeminiChat(CHAT_SYSTEM, txt);
     loader.remove();
-    appendAI('chatAI', esc(ans).replace(/\n/g, '<br>'));
+    // コードブロックを整形して表示
+    const html = formatChatResponse(ans);
+    appendAI('chatAI', html);
   } catch (e) {
     loader.remove();
     appendAI('chatAI', `❌ ${esc(e.message)}`);
   }
+}
+
+// チャット返答のフォーマット（コードブロック対応）
+function formatChatResponse(text) {
+  // ```...``` をコードブロックに変換
+  let html = esc(text);
+  html = html.replace(/```(?:cobol|COBOL|sql|SQL|javascript|js)?\n?([\s\S]*?)```/g,
+    (_, code) => `<pre style="background:var(--surface2);padding:10px;border-radius:6px;font-size:12px;overflow-x:auto;margin:6px 0;white-space:pre-wrap">${code.trim()}</pre>`
+  );
+  // 改行を<br>に（preブロック外のみ）
+  html = html.replace(/\n/g, '<br>');
+  return html;
+}
+
+function clearChatHistory() {
+  if (!confirm('会話履歴をリセットしますか？')) return;
+  chatHistory = [];
+  const win = document.getElementById('chatAI');
+  win.innerHTML = `<div class="msg ai"><div class="msg-avatar">🤖</div>
+    <div class="msg-bubble">会話履歴をリセットしました。新しい質問をどうぞ！<br>
+    例：「PIC句のVとSの違いを教えて」「境界値分析って何ですか」</div></div>`;
 }
 
 function handleKey(e) {
