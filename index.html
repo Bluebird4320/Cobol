@@ -75,7 +75,9 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); min-
   overflow-x: auto; -webkit-overflow-scrolling: touch;
   background: var(--bg2); border-bottom: 1px solid var(--border);
   scrollbar-width: none;
+  position: fixed; top: 57px; left: 0; right: 0; z-index: 99;
 }
+
 .tabs-container::-webkit-scrollbar { display: none; }
 .tabs { display: flex; gap: 2px; padding: 8px 10px; min-width: max-content; }
 .tab-btn {
@@ -88,7 +90,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); min-
 .tab-btn:not(.active):active { background: var(--border); }
 
 /* ========== LAYOUT ========== */
-.main-content { padding: 16px; max-width: 600px; margin: 0 auto; padding-bottom: 80px; }
+.main-content { padding: 16px; max-width: 600px; margin: 52px auto 0; padding-bottom: 80px; }
 .panel { display: none; }
 .panel.active { display: block; }
 
@@ -430,6 +432,26 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); min-
 .test-result-bar.fail { background: rgba(239,68,68,0.10); border: 1.5px solid var(--error);   color: var(--error); }
 .test-score { font-size: 26px; font-weight: 900; }
 
+
+
+/* ========== DATA BACKUP ========== */
+.backup-modal-section {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px 16px; margin-bottom: 12px;
+}
+.backup-section-title {
+  font-size: 12px; font-weight: 800; color: var(--accent);
+  letter-spacing: 0.5px; margin-bottom: 10px;
+}
+.backup-stat-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;
+}
+.backup-stat {
+  background: var(--card); border-radius: 9px; padding: 10px 12px; text-align: center;
+}
+.backup-stat-num  { font-size: 22px; font-weight: 900; color: var(--accent3); line-height: 1; }
+.backup-stat-label{ font-size: 10px; color: var(--text3); margin-top: 3px; }
+
 @media (max-width: 430px) {
   .main-content { padding: 12px; padding-bottom: 80px; }
   .q-text { font-size: 14px; }
@@ -464,7 +486,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); min-
   <div class="app-logo">⚡ COBOL道場</div>
   <div class="app-subtitle">COBOLエンジニア</div>
   <div class="point-badge" onclick="openModal()">🪙 <span id="ptDisp">0</span>pt</div>
-  <button class="icon-btn" onclick="openKeyModal()" title="APIキー設定">⚙️</button>
+<button class="icon-btn" onclick="openKeyModal()" title="APIキー設定">⚙️</button>
 </header>
 
 <!-- ===== API KEY SETUP ===== -->
@@ -3188,6 +3210,75 @@ END-EXEC</pre>
 
 </div><!-- #app -->
 
+<!-- ===== BACKUP MODAL ===== -->
+<div class="modal-overlay" id="backupModal" onclick="closeBackupModal(event)">
+  <div class="modal-box">
+    <h2>💾 データ保存・復元</h2>
+
+    <!-- 現在のデータサマリ -->
+    <div class="backup-modal-section">
+      <div class="backup-section-title">📊 現在のデータ</div>
+      <div class="backup-stat-grid">
+        <div class="backup-stat">
+          <div class="backup-stat-num" id="bk-pts">0</div>
+          <div class="backup-stat-label">ポイント</div>
+        </div>
+        <div class="backup-stat">
+          <div class="backup-stat-num" id="bk-study">0</div>
+          <div class="backup-stat-label">学習済み章</div>
+        </div>
+        <div class="backup-stat">
+          <div class="backup-stat-num" id="bk-memo">0</div>
+          <div class="backup-stat-label">メモ件数</div>
+        </div>
+        <div class="backup-stat">
+          <div class="backup-stat-num" id="bk-reward">0</div>
+          <div class="backup-stat-label">ご褒美数</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- エクスポート -->
+    <div class="backup-modal-section">
+      <div class="backup-section-title">⬇️ バックアップを保存</div>
+      <p style="font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.7">
+        全データをJSONファイルに書き出します。<br>別の端末や再インストール後に読み込めます。
+      </p>
+      <button class="btn btn-primary" style="width:100%" onclick="exportData()">
+        📥 JSONファイルをダウンロード
+      </button>
+    </div>
+
+    <!-- インポート -->
+    <div class="backup-modal-section">
+      <div class="backup-section-title">⬆️ バックアップを復元</div>
+      <p style="font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.7">
+        保存したJSONファイルを読み込みます。<br>⚠️ 現在のデータは上書きされます。
+      </p>
+      <label style="display:block;width:100%">
+        <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importData(event)">
+        <span class="btn btn-secondary" style="display:block;text-align:center;cursor:pointer;padding:11px"
+          onclick="document.getElementById('importFileInput').click()">
+          📤 JSONファイルを選択して読み込む
+        </span>
+      </label>
+      <div id="importMsg" style="font-size:12px;text-align:center;margin-top:8px;min-height:16px"></div>
+    </div>
+
+    <!-- リセット -->
+    <div class="backup-modal-section" style="border-color:rgba(239,68,68,0.3)">
+      <div class="backup-section-title" style="color:var(--error)">🗑️ データをリセット</div>
+      <p style="font-size:12px;color:var(--text3);margin-bottom:10px;line-height:1.7">
+        全データを削除して初期状態に戻します。<br>⚠️ この操作は取り消せません。
+      </p>
+      <button class="btn btn-secondary" style="width:100%;color:var(--error);border-color:var(--error)"
+        onclick="resetAllData()">全データを削除する</button>
+    </div>
+
+    <button class="btn btn-secondary" style="width:100%;margin-top:4px" onclick="closeBackupModal()">閉じる</button>
+  </div>
+</div>
+
 <!-- ===== API KEY MODAL ===== -->
 <div class="modal-overlay" id="keyModal" onclick="closeKeyModal(event)">
   <div class="modal-box">
@@ -3306,6 +3397,7 @@ let memos   = JSON.parse(localStorage.getItem('cobol_memos')   || '[]');
 let editingRewardIdx = null;
 let editingMemoIdx   = null;
 let memoFilterTag    = 'all';
+
 
 /* =========================================
    INIT
@@ -3597,7 +3689,7 @@ function showChapterTestResult(chId, testId, state, questions) {
       localStorage.setItem('study_done', JSON.stringify(studyDone));
       addPts(15);
       updateStudyProgress();
-    }
+        }
     const btn = document.getElementById('testbtn-' + chId);
     if (btn) { btn.classList.add('done'); btn.textContent = '✅ テスト合格済み'; btn.disabled = true; }
   }
@@ -3611,6 +3703,117 @@ function retryChapterTest(chId) {
   btn.disabled = false;
   btn.classList.remove('done');
   btn.textContent = '📝 確認テストで進捗を更新する';
+}
+
+
+/* =========================================
+   DATA BACKUP / RESTORE
+   ========================================= */
+function openBackupModal() {
+  document.getElementById('bk-pts').textContent    = points;
+  document.getElementById('bk-study').textContent  = studyDone.length;
+  document.getElementById('bk-memo').textContent   = memos.length;
+  document.getElementById('bk-reward').textContent = rewards.length;
+  document.getElementById('importMsg').textContent = '';
+  document.getElementById('backupModal').classList.add('show');
+}
+function closeBackupModal(e) {
+  if (!e || e.target === document.getElementById('backupModal'))
+    document.getElementById('backupModal').classList.remove('show');
+}
+
+function exportData() {
+  const data = {
+    version:   '1.0',
+    exportedAt: new Date().toLocaleString('ja-JP'),
+    points,
+    studyDone,
+    rewards,
+    memos,
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  a.href     = url;
+  a.download = `cobol-dojo-backup-${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showPtPopup('バックアップ完了！');
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const msg = document.getElementById('importMsg');
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      if (!('studyDone' in d)) throw new Error('形式が正しくありません');
+
+      if (!confirm(`バックアップデータを読み込みます。
+保存日時: ${d.exportedAt || '不明'}
+
+現在のデータは上書きされます。続けますか？`)) {
+        e.target.value = '';
+        return;
+      }
+
+      // データ反映
+      if (d.points    !== undefined) { points    = d.points;    localStorage.setItem('cobol_pts', points); }
+      if (d.studyDone)               { studyDone = d.studyDone; localStorage.setItem('study_done', JSON.stringify(studyDone)); }
+      if (d.rewards)                 { rewards   = d.rewards;   localStorage.setItem('cobol_rewards', JSON.stringify(rewards)); }
+      if (d.memos)                   { memos     = d.memos;     localStorage.setItem('cobol_memos',   JSON.stringify(memos)); }
+
+      // UI更新
+      updatePtDisp();
+      updateStudyProgress();
+      renderMemoTagBar();
+      renderMemos();
+
+      // サマリ更新
+      document.getElementById('bk-pts').textContent    = points;
+      document.getElementById('bk-study').textContent  = studyDone.length;
+      document.getElementById('bk-memo').textContent   = memos.length;
+      document.getElementById('bk-reward').textContent = rewards.length;
+
+      msg.style.color   = 'var(--success)';
+      msg.textContent   = '✅ 復元完了！';
+      e.target.value    = '';
+      showPtPopup('データ復元！');
+    } catch(err) {
+      msg.style.color = 'var(--error)';
+      msg.textContent = '❌ ' + err.message;
+      e.target.value  = '';
+    }
+  };
+  reader.readAsText(file);
+}
+
+function resetAllData() {
+  if (!confirm('全データを削除しますか？
+ポイント・進捗・メモ・ご褒美が全て消えます。
+
+この操作は取り消せません。')) return;
+  points    = 0;
+  studyDone = [];
+  rewards   = [...DEFAULT_REWARDS];
+  memos     = [];
+  localStorage.setItem('cobol_pts',      0);
+  localStorage.setItem('study_done',     '[]');
+  localStorage.setItem('cobol_rewards',  JSON.stringify(DEFAULT_REWARDS));
+  localStorage.setItem('cobol_memos',    '[]');
+  updatePtDisp();
+  updateStudyProgress();
+  renderMemoTagBar();
+  renderMemos();
+  document.getElementById('bk-pts').textContent    = 0;
+  document.getElementById('bk-study').textContent  = 0;
+  document.getElementById('bk-memo').textContent   = 0;
+  document.getElementById('bk-reward').textContent = 0;
+  document.getElementById('backupModal').classList.remove('show');
+  showPtPopup('リセット完了');
 }
 /* =========================================
    TAB
@@ -3794,7 +3997,7 @@ function saveRewardEdit() {
    ========================================= */
 async function callGemini(prompt) {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
