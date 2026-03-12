@@ -4550,7 +4550,7 @@ function clearChatHistory() {
 }
 
 function handleKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+  // Enterキーでは送信しない（送信ボタンのみで送信）
 }
 function autoResize(ta) {
   ta.style.height = 'auto';
