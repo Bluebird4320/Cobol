@@ -3788,10 +3788,7 @@ function importData(e) {
 }
 
 function resetAllData() {
-  if (!confirm('全データを削除しますか？
-ポイント・進捗・メモ・ご褒美が全て消えます。
-
-この操作は取り消せません。')) return;
+  if (!confirm('全データを削除しますか？\nポイント・進捗・メモ・ご褒美が全て消えます。\n\nこの操作は取り消せません。')) return;
   points    = 0;
   studyDone = [];
   rewards   = [...DEFAULT_REWARDS];
