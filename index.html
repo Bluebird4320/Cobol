@@ -508,7 +508,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); min-
 </div>
 
 <!-- ===== MAIN APP ===== -->
-<div id="app" style="display:none">
+<div id="app">
 
   <!-- TABS -->
   <div class="tabs-container">
@@ -3412,7 +3412,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // APIキー未設定でもアプリは表示する（問題生成機能だけ制限）
   document.getElementById('apiSetup').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
 });
 
 function saveKey() {
