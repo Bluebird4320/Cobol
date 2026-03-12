@@ -486,7 +486,8 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); min-
   <div class="app-logo">⚡ COBOL道場</div>
   <div class="app-subtitle">COBOLエンジニア</div>
   <div class="point-badge" onclick="openModal()">🪙 <span id="ptDisp">0</span>pt</div>
-<button class="icon-btn" onclick="openKeyModal()" title="APIキー設定">⚙️</button>
+  <button class="icon-btn" onclick="openBackupModal()" title="データ保存・復元">💾</button>
+  <button class="icon-btn" onclick="openKeyModal()" title="APIキー設定">⚙️</button>
 </header>
 
 <!-- ===== API KEY SETUP ===== -->
@@ -3409,13 +3410,9 @@ window.addEventListener('DOMContentLoaded', () => {
   renderMemoTagBar();
   renderMemos();
 
-  if (!API_KEY) {
-    document.getElementById('apiSetup').style.display = 'block';
-    document.getElementById('app').style.display = 'none';
-  } else {
-    document.getElementById('apiSetup').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-  }
+  // APIキー未設定でもアプリは表示する（問題生成機能だけ制限）
+  document.getElementById('apiSetup').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
 });
 
 function saveKey() {
@@ -3996,6 +3993,10 @@ function saveRewardEdit() {
    GEMINI API
    ========================================= */
 async function callGemini(prompt) {
+  if (!API_KEY) {
+    openKeyModal();
+    throw new Error('APIキーが未設定です。⚙️ から設定してください');
+  }
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`,
     {
