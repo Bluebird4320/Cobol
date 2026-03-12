@@ -3992,9 +3992,6 @@ async function callGemini(prompt, jsonMode = false) {
     openKeyModal();
     throw new Error('APIキーが未設定です。⚙️ から設定してください');
   }
-  const config = jsonMode
-    ? { temperature: 0.75, maxOutputTokens: 1600, responseMimeType: 'application/json' }
-    : { temperature: 0.75, maxOutputTokens: 1600 };
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
     {
@@ -4002,7 +3999,7 @@ async function callGemini(prompt, jsonMode = false) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: config
+        generationConfig: { temperature: 0.5, maxOutputTokens: 2000 }
       })
     }
   );
@@ -4012,14 +4009,19 @@ async function callGemini(prompt, jsonMode = false) {
 }
 
 function parseJSON(raw) {
-  try {
-    // ```json ... ``` ブロックを優先的に抽出
-    const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (fence) return JSON.parse(fence[1].trim());
-    // { } で囲まれた最初のJSONオブジェクトを抽出
-    const m = raw.match(/\{[\s\S]*\}/);
-    return m ? JSON.parse(m[0]) : null;
-  } catch { return null; }
+  if (!raw) return null;
+  // 1. そのままパース試行
+  try { return JSON.parse(raw.trim()); } catch {}
+  // 2. ```json...``` ブロック抽出
+  const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fence) { try { return JSON.parse(fence[1].trim()); } catch {} }
+  // 3. 最初の { から最後の } を抽出
+  const start = raw.indexOf('{');
+  const end   = raw.lastIndexOf('}');
+  if (start !== -1 && end !== -1 && end > start) {
+    try { return JSON.parse(raw.slice(start, end + 1)); } catch {}
+  }
+  return null;
 }
 
 /* =========================================
@@ -4034,13 +4036,15 @@ async function genQ(type) {
 
   try {
     const raw = await callGemini(buildPrompt(type, theme), true);
+    console.log('[Gemini raw]', raw); // デバッグ用
     loader.remove();
     const q = parseJSON(raw);
-    if (!q) throw new Error('JSONパースに失敗しました');
+    if (!q) throw new Error('JSONパースに失敗しました\n---\n' + raw.slice(0, 200));
     curQ = q;
     renderQ(chatId, q, type);
   } catch (e) {
     loader.remove();
+    console.error('[genQ error]', e);
     appendAI(chatId, `❌ 問題生成に失敗しました。<br><small style="color:var(--text3)">${esc(e.message)}</small>`);
   }
 }
@@ -4052,58 +4056,30 @@ function buildPrompt(type, theme) {
   if (type === 'quiz') {
     const forms = ['choice','choice','truefalse','description'];
     const form  = forms[Math.floor(Math.random() * forms.length)];
-    return `あなたはCOBOLと単体テストの教育専門家です。
-テーマ「${theme}」に関する${diffTxt}の問題を1問作成してください。
+    const choicesField = form === 'choice'
+      ? '"choices": ["選択肢A","選択肢B","選択肢C","選択肢D","選択肢E"]'
+      : '"choices": []';
+    const answerHint = form === 'choice' ? 'A〜Eのいずれか1文字' : form === 'truefalse' ? 'true または false' : '正解の記述例';
+    return `COBOLと単体テストの教育専門家として、テーマ「${theme}」の${diffTxt}問題を1問作ってください。
 
-以下のJSON形式のみで返してください（余計な説明不要）:
-{
-  "type": "${form}",
-  "theme": "${theme}",
-  "question": "問題文",
-  "code": "COBOLコードサンプル（不要なら空文字）",
-  "choices": ${form === 'choice' ? '["選択肢A","選択肢B","選択肢C","選択肢D","選択肢E"]' : '[]'},
-  "answer": "${form === 'choice' ? 'A〜E' : form === 'truefalse' ? 'true or false' : '正解の記述例'}",
-  "explanation": "なぜそれが正解か、簡潔に2〜3文で解説",
-  "points": ${ptBase}
-}`;
+必ずこのJSON形式だけを返してください。説明文・前置き・コードブロック記号は不要です:
+{"type":"${form}","theme":"${theme}","question":"問題文をここに","code":"COBOLコードがあればここに、なければ空文字","${choicesField.replace(/^"/,'').replace(/:.*$/,'')}":${form === 'choice' ? '["A案","B案","C案","D案","E案"]' : '[]'},"answer":"${answerHint}","explanation":"解説を2〜3文で","points":${ptBase}}`;
   }
 
   if (type === 'coding') {
-    return `あなたはCOBOL教育の専門家です。
-テーマ「${theme}」に関するCOBOL穴埋め問題を1問作成してください。
-コードに（A）〜（E）のような穴を作り、5択形式にしてください。
+    return `COBOL教育の専門家として、テーマ「${theme}」のCOBOL穴埋め問題を1問作ってください。コードに（A）〜（E）の穴を作り5択形式にしてください。
 
-JSON形式のみで返してください:
-{
-  "type": "choice",
-  "theme": "${theme}",
-  "question": "下記COBOLコードの（　）に当てはまるものを選んでください。\\n【処理概要を1〜2文で説明】",
-  "code": "穴埋り部分を（A）〜で示したCOBOLコード",
-  "choices": ["選択肢A","選択肢B","選択肢C","選択肢D","選択肢E"],
-  "answer": "正解の選択肢記号",
-  "explanation": "正解の理由と関連するCOBOL文法ポイントを2〜3文で",
-  "points": 20
-}`;
+必ずこのJSON形式だけを返してください。説明文・前置き・コードブロック記号は不要です:
+{"type":"choice","theme":"${theme}","question":"COBOLコードの（　）に当てはまるものを選んでください。","code":"穴埋めCOBOLコード","choices":["選択肢A","選択肢B","選択肢C","選択肢D","選択肢E"],"answer":"正解記号","explanation":"解説2〜3文","points":20}`;
   }
 
   // testcase
   const forms = ['choice','truefalse','description'];
   const form  = forms[Math.floor(Math.random() * forms.length)];
-  return `あなたはソフトウェアテスト教育の専門家です。
-テーマ「${theme}」に関するテスト設計問題を1問作成してください。
-境界値分析・同値分割・デシジョンテーブルのいずれかの技法を使用してください。
+  return `ソフトウェアテスト教育の専門家として、テーマ「${theme}」のテスト設計問題（境界値/同値分割/デシジョンテーブルのいずれか）を1問作ってください。
 
-JSON形式のみで返してください:
-{
-  "type": "${form}",
-  "theme": "${theme}",
-  "question": "問題文（仕様があれば含める）",
-  "code": "仕様テーブルや条件表（あれば。なければ空文字）",
-  "choices": ${form === 'choice' ? '["選択肢A","選択肢B","選択肢C","選択肢D","選択肢E"]' : '[]'},
-  "answer": "${form === 'choice' ? 'A〜E' : form === 'truefalse' ? 'true or false' : '記述解答例'}",
-  "explanation": "テスト技法を踏まえた解説を2〜3文で",
-  "points": 25
-}`;
+必ずこのJSON形式だけを返してください。説明文・前置き・コードブロック記号は不要です:
+{"type":"${form}","theme":"${theme}","question":"問題文","code":"仕様テーブルがあれば、なければ空文字","choices":${form === 'choice' ? '["選択肢A","選択肢B","選択肢C","選択肢D","選択肢E"]' : '[]'},"answer":"${form === 'choice' ? 'A〜Eの1文字' : form === 'truefalse' ? 'true または false' : '記述解答例'}","explanation":"テスト技法を踏まえた解説2〜3文","points":25}`;
 }
 
 /* =========================================
