@@ -3807,6 +3807,142 @@ function resetAllData() {
   document.getElementById('backupModal').classList.remove('show');
   showPtPopup('リセット完了');
 }
+
+/* =========================================
+   OFFLINE QUESTION BANK（各50問）
+   ========================================= */
+const OFFLINE_QUIZ = [
+  {type:'choice',question:'COBOLプログラムの4つの部（DIVISION）を正しい順序で並べたものはどれか？',code:'',choices:['IDENTIFICATION→ENVIRONMENT→DATA→PROCEDURE','ENVIRONMENT→IDENTIFICATION→DATA→PROCEDURE','DATA→ENVIRONMENT→IDENTIFICATION→PROCEDURE','PROCEDURE→DATA→ENVIRONMENT→IDENTIFICATION','IDENTIFICATION→DATA→ENVIRONMENT→PROCEDURE'],answer:'A',explanation:'COBOLの基本構造はIDENTIFICATION DIVISION、ENVIRONMENT DIVISION、DATA DIVISION、PROCEDURE DIVISIONの順です。',points:10},
+  {type:'choice',question:'PIC 9(5)V99 で定義された変数に格納できる最大値はどれか？',code:'',choices:['99999.99','9999.99','999.99','99999','9999999'],answer:'A',explanation:'9(5)は整数5桁、V99は小数2桁を表します。最大値は99999.99です。',points:10},
+  {type:'truefalse',question:'MOVE文では、受取側の変数が送出側より小さい場合、データは右側から切り捨てられる。',code:'',choices:[],answer:'false',explanation:'数値の場合は左側（上位桁）から切り捨てられます。文字の場合は右側が切り捨てられます。',points:10},
+  {type:'choice',question:'PERFORM UNTIL文の制御変数を自動増加させるために使うオプションはどれか？',code:'',choices:['VARYING','UNTIL','TIMES','WITH TEST','AFTER'],answer:'A',explanation:'PERFORM VARYING 変数 FROM 初期値 BY 増分 UNTIL 条件 の形式で制御変数を自動増加できます。',points:10},
+  {type:'choice',question:'ファイルをオープンして読み取り処理を行う際の正しいOPEN文はどれか？',code:'',choices:['OPEN INPUT ファイル名','OPEN READ ファイル名','OPEN OUTPUT ファイル名','OPEN INOUT ファイル名','OPEN ACCESS ファイル名'],answer:'A',explanation:'読み取り専用でファイルをオープンする場合はOPEN INPUT ファイル名を使用します。',points:10},
+  {type:'choice',question:'DATA DIVISIONで01レベルの直下に定義できるレベル番号はどれか？',code:'',choices:['02〜49','01のみ','50〜99','77のみ','66のみ'],answer:'A',explanation:'01レベルの直下には02〜49のレベル番号を使用してグループ項目・基本項目を定義できます。',points:10},
+  {type:'truefalse',question:'COMPUTE文では四則演算と指数演算が使用できる。',code:'',choices:[],answer:'true',explanation:'COMPUTE文では+, -, *, /, ** (指数)の演算子が使用できます。',points:10},
+  {type:'choice',question:'文字列を比較する際、COBOLが用いる照合順序はどれか？',code:'',choices:['PROGRAM COLLATING SEQUENCE','ASCII順','EBCDIC順','JIS順','UTF-8順'],answer:'A',explanation:'PROGRAM COLLATING SEQUENCEで指定した順序、またはデフォルトの照合順序（処理系依存）が使用されます。',points:10},
+  {type:'choice',question:'EVALUATE文でその他のすべての条件をカバーするキーワードはどれか？',code:'',choices:['WHEN OTHER','WHEN ELSE','DEFAULT','OTHERWISE','WHEN ALL'],answer:'A',explanation:'EVALUATE文ではWHEN OTHERでいずれの条件にも合致しない場合の処理を記述します。',points:10},
+  {type:'truefalse',question:'STOP RUN文は主プログラムだけでなくサブプログラムからも呼び出せる。',code:'',choices:[],answer:'true',explanation:'STOP RUN文はどの位置からでもプログラム全体を終了させます。サブプログラムに戻るにはGOBACK文を使います。',points:10},
+  {type:'choice',question:'WORKING-STORAGE SECTIONに定義した変数の初期値はどれか？',code:'',choices:['未定義（不定値）','0または空白（VALUE句で明示しない場合）','常に0','常に空白','コンパイラ依存'],answer:'A',explanation:'VALUE句を指定しない場合、WORKING-STORAGE SECTIONの変数は不定値です。明示的にVALUE句で初期化することを推奨します。',points:10},
+  {type:'choice',question:'PIC X(10) VALUE "ABC" の変数の内容はどれか？',code:'',choices:['ABC       （右7桁は空白）','ABC（3文字のみ）','エラー','ABCxxxxxxx','0000000ABC'],answer:'A',explanation:'PIC X(10)は10桁英数字。"ABC"は左詰めで格納され、右側7桁は空白で埋められます。',points:10},
+  {type:'truefalse',question:'REDEFINES句を使うと、同一のメモリ領域を異なるデータ定義で参照できる。',code:'',choices:[],answer:'true',explanation:'REDEFINES句は同じメモリ領域に別のデータ形式を重ねて定義します。共用体のような用途に使われます。',points:10},
+  {type:'choice',question:'INDEX型の変数を定義するために使うキーワードはどれか？',code:'',choices:['INDEXED BY','OCCURS','USAGE INDEX','SIGN','VALUE'],answer:'C',explanation:'USAGE INDEX（またはUSAGE IS INDEX）でインデックス型変数を定義します。OCCURS句のINDEXED BYで自動定義することも多いです。',points:10},
+  {type:'choice',question:'READ文でファイルの終端に達した場合の処理を指定する句はどれか？',code:'',choices:['AT END','END-READ','INVALID KEY','NO DATA','FILE STATUS'],answer:'A',explanation:'順次ファイルのREAD文ではAT END句でファイル終端時の処理を記述します。',points:10},
+  {type:'choice',question:'WRITE文でレコードを書き込んだ後に改ページするための句はどれか？',code:'',choices:['AFTER ADVANCING PAGE','BEFORE ADVANCING PAGE','SKIP TO TOP','NEW PAGE','PAGE ADVANCE'],answer:'A',explanation:'WRITE レコード名 AFTER ADVANCING PAGE でレコード書き込み後に改ページします。',points:10},
+  {type:'truefalse',question:'LINKAGE SECTIONはCALL文でサブプログラムに渡すパラメータを定義する領域である。',code:'',choices:[],answer:'true',explanation:'LINKAGE SECTIONは呼び出し元から渡された引数を受け取るためにサブプログラム側で定義します。',points:10},
+  {type:'choice',question:'数値項目に符号を持たせるためのPIC句はどれか？',code:'',choices:['S9(5)','9(5)','N9(5)','P9(5)','Z9(5)'],answer:'A',explanation:'Sを先頭に付けることで符号付き数値項目になります。例: PIC S9(5)は-99999〜99999。',points:10},
+  {type:'choice',question:'STRING文の用途として正しいものはどれか？',code:'',choices:['複数の文字列を連結する','文字列を分割する','文字を検索する','文字を置換する','文字数を数える'],answer:'A',explanation:'STRING文は複数の文字列データを一つの変数に連結するために使います。',points:10},
+  {type:'choice',question:'UNSTRING文の用途として正しいものはどれか？',code:'',choices:['文字列を区切り文字で分割する','文字列を連結する','文字を変換する','数値を文字に変換する','文字列の長さを取得する'],answer:'A',explanation:'UNSTRING文は指定した区切り文字で文字列を複数の変数に分割します。',points:10},
+  {type:'choice',question:'INSPECT文のTALLYING句の用途はどれか？',code:'',choices:['文字の出現回数を数える','文字を置換する','文字を検索する','文字を削除する','文字を追加する'],answer:'A',explanation:'INSPECT TALLYING は文字列内の特定の文字や部分文字列の出現回数を数えます。',points:10},
+  {type:'truefalse',question:'PERFORM文のWITH TEST AFTER オプションは、条件判定をループ本体の実行後に行う。',code:'',choices:[],answer:'true',explanation:'WITH TEST AFTERはdo-whileループに相当し、ループ本体を最低1回は実行します。デフォルトはWITH TEST BEFORE（while相当）です。',points:10},
+  {type:'choice',question:'索引ファイル（INDEXED FILE）へのランダムアクセスで使うREAD文の必須句はどれか？',code:'',choices:['KEY IS','INVALID KEY','AT END','ADVANCING','FROM'],answer:'A',explanation:'索引ファイルのランダムREADでは、検索キーを指定するKEY IS句（またはRECORD KEY）が必要です。',points:10},
+  {type:'choice',question:'SORT文でソートキーを昇順指定するキーワードはどれか？',code:'',choices:['ASCENDING KEY','DESCENDING KEY','ORDER BY ASC','SORT ASC','UP KEY'],answer:'A',explanation:'SORT文ではASCENDING KEY フィールド名で昇順、DESCENDING KEY で降順を指定します。',points:10},
+  {type:'choice',question:'CALL文でサブプログラムに引数を渡す際、BY REFERENCEの説明として正しいのはどれか？',code:'',choices:['呼び出し元の変数のアドレスを渡す','変数の値のコピーを渡す','定数を渡す','渡さない','名前で渡す'],answer:'A',explanation:'BY REFERENCEはアドレスを渡すため、サブプログラム内での変更が呼び出し元に反映されます。',points:10},
+  {type:'choice',question:'88レベルの用途として正しいのはどれか？',code:'',choices:['条件名の定義','配列の定義','再定義','インデックスの定義','ポインタの定義'],answer:'A',explanation:'88レベルは条件名（Condition Name）を定義します。IF FLAG = "1" の代わりに IF フラグON のように可読性を高められます。',points:10},
+  {type:'truefalse',question:'DISPLAY文はコンソールへの出力だけでなく、ファイルへの出力にも使用できる。',code:'',choices:[],answer:'false',explanation:'DISPLAY文は標準出力（コンソール）への出力に使います。ファイルへの出力はWRITE文を使います。',points:10},
+  {type:'choice',question:'ACCEPT文の主な用途はどれか？',code:'',choices:['標準入力からデータを受け取る','ファイルからレコードを読む','変数を初期化する','演算結果を受け取る','日付を取得する'],answer:'A',explanation:'ACCEPT文は標準入力（キーボード）からデータを受け取ります。ACCEPT 変数 FROM DATE で日付取得も可能です。',points:10},
+  {type:'choice',question:'ROUNDED句の説明として正しいのはどれか？',code:'',choices:['演算結果を丸め処理する','小数を切り捨てる','整数部のみ取得する','符号を取り除く','絶対値にする'],answer:'A',explanation:'ROUNDED句を指定すると、格納先の精度を超えた桁を四捨五入します。指定しない場合は切り捨てです。',points:10},
+  {type:'truefalse',question:'ON SIZE ERROR句は、演算結果が受取フィールドの桁数を超えた場合に実行される。',code:'',choices:[],answer:'true',explanation:'ADD, SUBTRACT, MULTIPLY, DIVIDE, COMPUTE文でON SIZE ERRORを指定すると桁あふれ時の処理を記述できます。',points:10},
+  {type:'choice',question:'PROCEDURE DIVISIONで段落名の後に続けて書くものはどれか？',code:'',choices:['ピリオド（.）','コロン（:）','セミコロン（;）','スラッシュ（/）','何も不要'],answer:'A',explanation:'段落名はピリオドで終わります。例: MAIN-PROC.',points:10},
+  {type:'choice',question:'FD（File Description）はどのセクションに記述するか？',code:'',choices:['FILE SECTION','WORKING-STORAGE SECTION','LINKAGE SECTION','LOCAL-STORAGE SECTION','SCREEN SECTION'],answer:'A',explanation:'FD（ファイル記述項）はDATA DIVISIONのFILE SECTIONに記述します。',points:10},
+  {type:'truefalse',question:'GOBACK文はサブプログラムを呼び出し元に戻すが、主プログラムで実行するとプログラムが終了する。',code:'',choices:[],answer:'true',explanation:'GOBACKは現在のプログラム単位を終了します。サブプログラムなら呼び出し元へ戻り、主プログラムなら実行を終了します。',points:10},
+  {type:'choice',question:'DIVIDE A INTO B GIVING C REMAINDER Dの説明として正しいのはどれか？',code:'',choices:['B÷AをCに格納し余りをDに格納','A÷BをCに格納し余りをDに格納','A×BをCに格納','A+BをCに格納','B-AをCに格納'],answer:'A',explanation:'DIVIDE A INTO Bは B÷A を計算します。GIVING Cで商を、REMAINDER Dで余りを格納します。',points:10},
+  {type:'choice',question:'CORRESPONDING（CORR）オプションをMOVE文で使う場合の説明として正しいのはどれか？',code:'',choices:['同名の基本項目間でデータを転送する','すべての項目を転送する','グループ項目全体を転送する','配列をコピーする','レコードを複製する'],answer:'A',explanation:'MOVE CORRESPONDING 送出側 TO 受取側 は、両グループ項目内の同名の基本項目間でデータを自動転送します。',points:10},
+  {type:'truefalse',question:'PIC Z(5)は先行ゼロを空白に置換して表示する編集項目である。',code:'',choices:[],answer:'true',explanation:'Z(5)はゼロ抑制編集文字です。先頭側の不要なゼロを空白に置き換えて表示します。',points:10},
+  {type:'choice',question:'OPEN EXTEND の説明として正しいのはどれか？',code:'',choices:['既存ファイルの末尾にレコードを追加する','ファイルを新規作成する','ファイルを読み取り専用で開く','ファイルを更新する','ファイルを削除する'],answer:'A',explanation:'OPEN EXTENDは既存の順次ファイルの末尾からレコードを追加するモードです。',points:10},
+  {type:'choice',question:'LOCAL-STORAGE SECTIONの説明として正しいのはどれか？',code:'',choices:['再帰呼び出し時に毎回初期化されるローカル変数領域','プログラム全体で共有される変数領域','呼び出し元から受け取るパラメータ領域','ファイル定義の領域','定数定義の領域'],answer:'A',explanation:'LOCAL-STORAGE SECTIONはCALLのたびに初期化されるため、再帰プログラムのローカル変数として適しています。',points:10},
+  {type:'truefalse',question:'NUMERIC クラス条件は、変数がすべて数字（0〜9）で構成されているか確認する。',code:'',choices:[],answer:'true',explanation:'IF 変数 IS NUMERIC で数値クラス条件判定ができます。符号やデシマルポイントが含まれる場合も数値とみなされます。',points:10},
+  {type:'choice',question:'ALPHABETIC クラス条件で正しいのはどれか？',code:'',choices:['A〜ZまたはスペースのみかチェックするIF文の条件','数字のみかチェックする条件','空白のみかチェックする条件','特殊文字を含むかチェックする条件','大文字のみかチェックする条件'],answer:'A',explanation:'IF 変数 IS ALPHABETIC でアルファベット（A-Z, a-z）とスペースのみで構成されているか確認できます。',points:10},
+  {type:'choice',question:'CONTINUE文の説明として正しいのはどれか？',code:'',choices:['何もしない（空の処理）','次の段落に移動する','ループを継続する','プログラムを終了する','直前の処理を繰り返す'],answer:'A',explanation:'CONTINUE文は何も実行しない処理です。WHEN節などで処理が不要な場合に記述します。',points:10},
+  {type:'truefalse',question:'COPY文はコンパイル時にソースコードを展開するためのもので、共通定義の再利用に使う。',code:'',choices:[],answer:'true',explanation:'COPY文は指定したコピー本（COPYBOOKファイル）をその位置に展開します。共通データ定義や処理を複数プログラムで共有できます。',points:10},
+  {type:'choice',question:'FILE STATUS変数の値が"00"の意味はどれか？',code:'',choices:['正常処理','ファイルなし','重複キー','レコードなし','システムエラー'],answer:'A',explanation:'FILE STATUS "00"は正常終了を示します。"10"はAT END（ファイル終端）、"22"は重複キーエラーを示します。',points:10},
+  {type:'choice',question:'WRITE文のBEFORE ADVANCING 3 LINESの説明はどれか？',code:'',choices:['レコードを書いた後3行改行する','書く前に3行改行する','3行スキップして書く','3行目に書く','3回繰り返す'],answer:'B',explanation:'BEFORE ADVANCINGは書き込みの前に改行を行います。AFTER ADVANCINGは書き込みの後に改行します。',points:10},
+  {type:'choice',question:'MOVE SPACES TO 変数 の結果はどれか？',code:'',choices:['変数全体をスペースで埋める','変数を0にする','変数を初期値に戻す','エラーになる','何もしない'],answer:'A',explanation:'SPACES（またはSPACE）はスペース（空白）を表すCOBOLの特殊定数です。文字項目をすべて空白で埋めます。',points:10},
+  {type:'truefalse',question:'MOVE ZEROS TO 数値変数 は、変数をすべて0にする。',code:'',choices:[],answer:'true',explanation:'ZEROS（ZERO、ZEROES）は数値の0を表す特殊定数です。MOVE ZEROS TO 変数で変数全体を0にします。',points:10},
+  {type:'choice',question:'IDENTIFICATION DIVISIONで必須の段落はどれか？',code:'',choices:['PROGRAM-ID','AUTHOR','DATE-WRITTEN','INSTALLATION','SECURITY'],answer:'A',explanation:'IDENTIFICATION DIVISIONではPROGRAM-ID段落が必須です。その他（AUTHOR等）は任意です。',points:10},
+  {type:'choice',question:'OCCURS句で配列を定義する際、添字の範囲はどこから始まるか？',code:'',choices:['1','0','任意','添字なし','コンパイラ依存'],answer:'A',explanation:'COBOLの配列添字は1から始まります。OCCURS 10 TIMESなら添字は1〜10です。',points:10},
+];
+
+const OFFLINE_CODING = [
+  {type:'choice',question:'下記COBOLコードの（A）に入る正しい命令はどれか？\n01 WS-CNT PIC 9(3).\n（A） WS-CNT TO WS-CNT',code:'PROCEDURE DIVISION.\n    MOVE 0 TO WS-CNT\n    （A） 1 TO WS-CNT',choices:['ADD','SUBTRACT','MULTIPLY','DIVIDE','COMPUTE'],answer:'A',explanation:'ADD 1 TO WS-CNT はWS-CNTに1を加算します。インクリメントの基本的な書き方です。',points:20},
+  {type:'choice',question:'ファイルをオープンして全レコードを読む処理の（A）に入るものはどれか？',code:'    OPEN INPUT IN-FILE\n    PERFORM UNTIL WS-EOF = "Y"\n      READ IN-FILE\n        （A）\n          MOVE "Y" TO WS-EOF\n        END-READ\n    END-PERFORM',choices:['AT END','INVALID KEY','ON ERROR','WHEN EOF','END FILE'],answer:'A',explanation:'順次ファイルのREAD文ではAT END句でファイル終端到達時の処理を記述します。',points:20},
+  {type:'choice',question:'下記コードの（A）に入る正しいPIC句はどれか？ 合計金額（最大999999円）を定義する。',code:'    01 WS-TOTAL （A）.',choices:['PIC 9(6)','PIC X(6)','PIC S9(6)','PIC 9(4)','PIC Z(6)'],answer:'A',explanation:'最大999999（6桁）の非負整数を格納するにはPIC 9(6)が適切です。',points:20},
+  {type:'choice',question:'IF文の（A）に入る正しいキーワードはどれか？',code:'    IF WS-SCORE >= 80\n      MOVE "合格" TO WS-RESULT\n    （A）\n      MOVE "不合格" TO WS-RESULT\n    END-IF',choices:['ELSE','OTHER','OTHERWISE','WHEN OTHER','DEFAULT'],answer:'A',explanation:'COBOLのIF文では条件不成立時の処理をELSEで記述します。',points:20},
+  {type:'choice',question:'配列の全要素を合計する（A）に入るものはどれか？',code:'    01 WS-ARR OCCURS 10 TIMES PIC 9(4).\n    01 WS-SUM PIC 9(6).\n    MOVE 0 TO WS-SUM\n    PERFORM VARYING I FROM 1 BY 1\n      （A） I > 10\n      ADD WS-ARR(I) TO WS-SUM\n    END-PERFORM',choices:['UNTIL','WHILE','WHEN','TIMES','AFTER'],answer:'A',explanation:'PERFORM VARYING...UNTIL 条件 でUNTIL以降の条件が真になるまでループを継続します。',points:20},
+  {type:'choice',question:'COMPUTE文の（A）に入る正しい演算式はどれか？ 税込価格を計算する（税率8%）',code:'    01 WS-PRICE PIC 9(6).\n    01 WS-TAX-PRICE PIC 9(6).\n    COMPUTE WS-TAX-PRICE （A）',choices:['= WS-PRICE * 1.08','= WS-PRICE + 0.08','= WS-PRICE / 0.08','= WS-PRICE * 108','= WS-PRICE + 108'],answer:'A',explanation:'COMPUTE文で税率1.08を掛けることで税込価格を計算します。ROUNDED句で丸め処理も可能です。',points:20},
+  {type:'choice',question:'EVALUATE文の（A）に入るものはどれか？',code:'    EVALUATE WS-GRADE\n      WHEN "A"\n        MOVE "優" TO WS-EVAL\n      WHEN "B"\n        MOVE "良" TO WS-EVAL\n      （A）\n        MOVE "その他" TO WS-EVAL\n    END-EVALUATE',choices:['WHEN OTHER','ELSE','DEFAULT','OTHERWISE','WHEN ALL'],answer:'A',explanation:'EVALUATE文でWHEN OTHERはいずれの条件にも合致しない場合の処理です。',points:20},
+  {type:'choice',question:'文字列連結の（A）に入るものはどれか？',code:'    01 WS-FIRST PIC X(4) VALUE "山田".\n    01 WS-LAST  PIC X(4) VALUE "太郎".\n    01 WS-NAME  PIC X(8).\n    （A） WS-FIRST DELIMITED SIZE\n          WS-LAST  DELIMITED SIZE\n          INTO WS-NAME',choices:['STRING','UNSTRING','MOVE','COPY','MERGE'],answer:'A',explanation:'STRING文で複数の文字列を連結します。DELIMITED SIZEで項目全体を使用します。',points:20},
+  {type:'choice',question:'ファイルに書き込む（A）に入るものはどれか？',code:'    OPEN OUTPUT OUT-FILE\n    MOVE "テストレコード" TO WS-REC\n    （A） WS-REC AFTER ADVANCING 1 LINE\n    CLOSE OUT-FILE',choices:['WRITE','PUT','OUTPUT','SEND','PRINT'],answer:'A',explanation:'順次ファイルにレコードを書き込むにはWRITE文を使います。AFTER ADVANCINGで改行を制御します。',points:20},
+  {type:'choice',question:'サブプログラムを呼び出す（A）に入るものはどれか？',code:'    （A） "SUBPGM" USING WS-PARAM1\n                      WS-PARAM2',choices:['CALL','EXEC','RUN','PERFORM','INVOKE'],answer:'A',explanation:'CALL文でサブプログラムを呼び出します。USING句でパラメータを渡します。',points:20},
+  {type:'choice',question:'数値を文字列に変換する（A）に入るものはどれか？',code:'    01 WS-NUM  PIC 9(5) VALUE 12345.\n    01 WS-CHAR PIC X(5).\n    （A） WS-NUM TO WS-CHAR',choices:['MOVE','CONVERT','TRANSFORM','CAST','STRING'],answer:'A',explanation:'MOVE文で数値項目から文字項目へ転送すると、数値が文字列に変換されます。',points:20},
+  {type:'choice',question:'レコードを削除する（A）に入るものはどれか？（索引ファイル）',code:'    MOVE "K001" TO WS-KEY\n    （A） IN-FILE\n         INVALID KEY\n           DISPLAY "削除失敗"',choices:['DELETE','REMOVE','ERASE','DROP','PURGE'],answer:'A',explanation:'索引ファイルのレコード削除はDELETE文を使います。INVALID KEY句でキー未発見時の処理を記述します。',points:20},
+  {type:'choice',question:'レコードを更新する（A）に入るものはどれか？',code:'    READ UP-FILE\n      INVALID KEY MOVE "N" TO WS-FLG\n    END-READ\n    IF WS-FLG = "Y"\n      MOVE 9999 TO WS-AMT\n      （A） UP-FILE\n    END-IF',choices:['REWRITE','WRITE','UPDATE','REPLACE','MODIFY'],answer:'A',explanation:'既存レコードを更新するにはREWRITE文を使います。事前にREADしたレコードを書き換えます。',points:20},
+  {type:'choice',question:'ゼロ除算を防ぐ（A）に入るものはどれか？',code:'    IF WS-DIVISOR （A） 0\n      DIVIDE WS-DIVIDEND BY WS-DIVISOR\n        GIVING WS-RESULT\n    ELSE\n      MOVE 0 TO WS-RESULT\n    END-IF',choices:['NOT =','=','>=','>','<'],answer:'A',explanation:'除数が0でないことを確認してからDIVIDE文を実行します。NOT = 0 でゼロ除算を防ぎます。',points:20},
+  {type:'choice',question:'PERFORM...TIMES の（A）に入るものはどれか？',code:'    （A） 5 TIMES\n      ADD 1 TO WS-CNT\n    END-PERFORM',choices:['PERFORM','DO','LOOP','REPEAT','FOR'],answer:'A',explanation:'PERFORM n TIMES で処理をn回繰り返します。最もシンプルな繰り返し構文です。',points:20},
+  {type:'choice',question:'日付を取得する（A）に入るものはどれか？',code:'    01 WS-DATE PIC 9(8).\n    （A） WS-DATE FROM DATE YYYYMMDD',choices:['ACCEPT','MOVE','READ','GET','FETCH'],answer:'A',explanation:'ACCEPT 変数 FROM DATE YYYYMMDD で現在日付をYYYYMMDD形式で取得できます。',points:20},
+  {type:'choice',question:'文字列の長さを取得する（A）に入るものはどれか？',code:'    01 WS-STR PIC X(20) VALUE "HELLO".\n    01 WS-LEN PIC 9(4).\n    （A） FUNCTION LENGTH(WS-STR) TO WS-LEN',choices:['MOVE','COMPUTE','ADD','CALL','ACCEPT'],answer:'A',explanation:'FUNCTION LENGTHは文字列の定義長を返します。MOVE文でその値を変数に格納できます。',points:20},
+  {type:'choice',question:'大文字変換の（A）に入るものはどれか？',code:'    01 WS-IN  PIC X(10) VALUE "hello".\n    01 WS-OUT PIC X(10).\n    MOVE （A） FUNCTION UPPER-CASE(WS-IN) TO WS-OUT',choices:['（空白）','RESULT','OUTPUT','VALUE','TARGET'],answer:'A',explanation:'FUNCTION UPPER-CASEで文字列を大文字に変換します。MOVE文で変換結果を変数に格納します。',points:20},
+  {type:'choice',question:'SEARCH文で（A）に入るものはどれか？（線形探索）',code:'    SEARCH WS-TABLE\n      （A）\n        DISPLAY "見つかりません"\n      WHEN WS-TABLE(IDX) = WS-TARGET\n        MOVE IDX TO WS-FOUND-IDX\n    END-SEARCH',choices:['AT END','WHEN EOF','NOT FOUND','NO DATA','END OF TABLE'],answer:'A',explanation:'SEARCH文ではAT END句で要素が見つからなかった場合の処理を記述します。',points:20},
+  {type:'choice',question:'二重ループの内側ループ変数（A）に入るものはどれか？',code:'    PERFORM VARYING I FROM 1 BY 1 UNTIL I > 3\n      PERFORM VARYING （A） FROM 1 BY 1 UNTIL J > 3\n        DISPLAY I J\n      END-PERFORM\n    END-PERFORM',choices:['J','K','I','L','IDX'],answer:'A',explanation:'二重ループでは外側変数Iと別の変数Jを使います。PERFORM VARYINGはネストできます。',points:20},
+  {type:'choice',question:'条件名（88レベル）を使った判定の（A）に入るものはどれか？',code:'    01 WS-STATUS PIC X(1).\n      88 STATUS-OK  VALUE "1".\n      88 STATUS-ERR VALUE "9".\n    IF （A）\n      PERFORM ERROR-PROC\n    END-IF',choices:['STATUS-ERR','WS-STATUS = "9"','STATUS-OK','WS-STATUS NOT = "1"','88-STATUS'],answer:'A',explanation:'88レベルで定義した条件名（STATUS-ERR）をそのままIF文で使えます。可読性が高まります。',points:20},
+  {type:'choice',question:'REDEFINES句の使用例で（A）に入るものはどれか？',code:'    01 WS-DATE.\n      02 WS-DATE-NUM PIC 9(8).\n    01 WS-DATE-SPLIT （A） WS-DATE.\n      02 WS-YEAR  PIC 9(4).\n      02 WS-MONTH PIC 9(2).\n      02 WS-DAY   PIC 9(2).',choices:['REDEFINES','RENAMES','REPLACES','BASED ON','COPY'],answer:'A',explanation:'REDEFINES句で同じメモリ領域を異なる構造で参照できます。日付を年月日に分割する典型的な使い方です。',points:20},
+  {type:'choice',question:'MOVE CORRESPONDING文の（A）に入るものはどれか？',code:'    01 WS-SRC.\n      02 WS-NAME PIC X(10).\n      02 WS-AGE  PIC 9(3).\n    01 WS-DST.\n      02 WS-NAME PIC X(10).\n      02 WS-AGE  PIC 9(3).\n    （A） WS-SRC TO WS-DST',choices:['MOVE CORRESPONDING','MOVE','COPY','ASSIGN','SET'],answer:'A',explanation:'MOVE CORRESPONDING（MOVE CORR）は同名の基本項目間を自動転送します。',points:20},
+  {type:'choice',question:'PERFORM段落名のインラインPERFORMと（A）はどちらが処理をサブルーチン化するか？',code:'    （A） SUB-PROC.\n    ...\n    SUB-PROC.\n      DISPLAY "サブルーチン".',choices:['PERFORM 段落名','PERFORM...END-PERFORM','GO TO','CALL','EXEC'],answer:'A',explanation:'PERFORM 段落名 は指定した段落をサブルーチンとして呼び出します。インラインPERFORMとは別物です。',points:20},
+  {type:'choice',question:'STRING文のOVERFLOW句（A）の説明はどれか？',code:'    STRING WS-A DELIMITED SIZE\n           WS-B DELIMITED SIZE\n           INTO WS-RESULT\n    （A）\n      DISPLAY "文字列があふれました"',choices:['ON OVERFLOW','AT END','INVALID KEY','ON SIZE ERROR','AT OVERFLOW'],answer:'A',explanation:'STRING文でON OVERFLOW句を使うと、結果が受取フィールドをはみ出した場合の処理を記述できます。',points:20},
+  {type:'choice',question:'DIVIDE文のREMAINDER句で余りを取得する（A）はどれか？',code:'    DIVIDE 7 INTO 20 GIVING WS-QUOT\n      （A） WS-REM',choices:['REMAINDER','REST','MOD','MODULO','LEFT'],answer:'A',explanation:'DIVIDE...GIVING...REMAINDER で商と余りを同時に取得できます。',points:20},
+  {type:'choice',question:'ファイルのクローズ処理（A）はどれか？',code:'    OPEN INPUT IN-FILE\n    PERFORM UNTIL WS-EOF = "Y"\n      READ IN-FILE AT END MOVE "Y" TO WS-EOF END-READ\n    END-PERFORM\n    （A） IN-FILE',choices:['CLOSE','END','FINISH','STOP','SHUT'],answer:'A',explanation:'ファイル処理が終わったらCLOSE文でファイルを閉じます。CLOSEしないとデータが失われる可能性があります。',points:20},
+  {type:'choice',question:'次のコードでWS-RESULTに格納される値はどれか？',code:'    01 WS-A PIC 9(3) VALUE 100.\n    01 WS-B PIC 9(3) VALUE 30.\n    01 WS-RESULT PIC 9(5).\n    COMPUTE WS-RESULT = WS-A * WS-B + 50',choices:['3050','130','150','3000','350'],answer:'A',explanation:'100 * 30 = 3000、3000 + 50 = 3050。COMPUTEは数学の演算順序（乗除→加減）に従います。',points:20},
+  {type:'choice',question:'INSPECT文で文字置換に使うのはどれか？',code:'    INSPECT WS-STR （A） ALL "A" BY "B"',choices:['REPLACING','TALLYING','CONVERTING','CHANGING','SUBSTITUTING'],answer:'A',explanation:'INSPECT...REPLACING で文字や部分文字列を別の文字に置き換えます。',points:20},
+  {type:'choice',question:'サブプログラムから呼び出し元に戻る（A）はどれか？',code:'    IDENTIFICATION DIVISION.\n    PROGRAM-ID. SUBPGM.\n    PROCEDURE DIVISION USING WS-PARAM.\n      ADD 1 TO WS-PARAM\n      （A）',choices:['GOBACK','STOP RUN','EXIT','RETURN','END PROGRAM'],answer:'A',explanation:'サブプログラムからCALL元に制御を戻すにはGOBACK文を使います。STOP RUNは全体終了です。',points:20},
+];
+
+const OFFLINE_TESTCASE = [
+  {type:'choice',question:'入力値が1〜100の整数を受け付けるシステムで、境界値分析に基づく適切なテストケースはどれか？',code:'',choices:['0, 1, 100, 101','1, 50, 100','0, 50, 101','1, 100','0, 1, 2, 99, 100, 101'],answer:'E',explanation:'境界値分析では境界値とその前後の値をテストします。0, 1, 100, 101が最小限ですが、さらに内側の代表値2, 99も含めたEが最も適切です。',points:25},
+  {type:'choice',question:'同値分割法で「0以下」「1〜100」「101以上」に分けた場合、各クラスの代表値として適切なものはどれか？',code:'',choices:['-1, 50, 102','-100, 1, 101','0, 100, 101','-1, 0, 100','1, 50, 99'],answer:'A',explanation:'同値分割では各クラスから1つの代表値を選びます。-1（0以下）, 50（1〜100）, 102（101以上）が各クラスを代表します。',points:25},
+  {type:'truefalse',question:'境界値分析は同値分割法の補完技法であり、境界付近の値に特にバグが多いという経験則に基づいている。',code:'',choices:[],answer:'true',explanation:'境界値分析は同値クラスの境界に着目します。端の値で処理が変わる箇所にバグが潜みやすいという経験則に基づきます。',points:25},
+  {type:'choice',question:'デシジョンテーブルで条件が3つある場合（各条件はY/N）、最大何ルールになるか？',code:'',choices:['8','6','4','9','3'],answer:'A',explanation:'条件がn個でY/Nの2値なら2^n通りのルールになります。3条件の場合2^3=8ルールです。',points:25},
+  {type:'choice',question:'ホワイトボックステストの説明として正しいのはどれか？',code:'',choices:['ソースコードの内部構造を参照してテストを設計する','仕様書のみを参照してテストを設計する','ランダムに入力値を選ぶ','ユーザー視点でテストを設計する','エラー推測でテストを設計する'],answer:'A',explanation:'ホワイトボックステストはプログラムの内部構造（コード）を参照してテストケースを設計します。ブラックボックスは外部仕様のみ参照します。',points:25},
+  {type:'choice',question:'C0（命令網羅）カバレッジの説明として正しいのはどれか？',code:'',choices:['全命令を少なくとも1回実行する','全分岐を少なくとも1回通過する','全条件の真偽を網羅する','全パスを実行する','全関数を呼び出す'],answer:'A',explanation:'C0（ステートメントカバレッジ）はすべての実行可能な命令を最低1回実行することを目標とします。',points:25},
+  {type:'choice',question:'C1（分岐網羅）カバレッジの説明として正しいのはどれか？',code:'',choices:['全分岐の真・偽両方を少なくとも1回実行する','全命令を実行する','全条件の組み合わせを網羅する','全ループを実行する','全パスを実行する'],answer:'A',explanation:'C1（ブランチカバレッジ）はIF文などの分岐でtrue/falseの両方を通過するテストケースが必要です。',points:25},
+  {type:'truefalse',question:'テストでバグが発見されなかったことは、バグが存在しないことを証明しない。',code:'',choices:[],answer:'true',explanation:'これはテストの限界です。テストはバグの存在を示せますが、不在は証明できません（ダイクストラの言葉）。',points:25},
+  {type:'choice',question:'単体テスト（ユニットテスト）の主な目的はどれか？',code:'',choices:['個々のモジュール・関数が仕様通りに動作するか検証する','システム全体の動作を検証する','UIの操作性を検証する','パフォーマンスを測定する','セキュリティを検証する'],answer:'A',explanation:'単体テストは最小単位（関数・モジュール）の動作を独立して検証します。他のモジュールはスタブ/ドライバで代替します。',points:25},
+  {type:'choice',question:'スタブ（Stub）の説明として正しいのはどれか？',code:'',choices:['テスト対象から呼び出される未完成モジュールの代替品','テスト対象を呼び出す上位モジュールの代替品','テストデータを生成するツール','バグを記録するシステム','テスト結果を検証するツール'],answer:'A',explanation:'スタブはテスト対象が呼び出す下位モジュールの代わりに使う仮実装です。ドライバはテスト対象を呼び出す上位モジュールの代替です。',points:25},
+  {type:'choice',question:'ドライバ（Driver）の説明として正しいのはどれか？',code:'',choices:['テスト対象を呼び出す上位モジュールの代替品','テスト対象から呼び出される未完成モジュールの代替品','テスト実行を自動化するツール','バグ管理システム','テスト計画書'],answer:'A',explanation:'ドライバはテスト対象の上位モジュールの代替として、テスト対象を呼び出してパラメータを渡し結果を確認します。',points:25},
+  {type:'truefalse',question:'回帰テスト（リグレッションテスト）は、変更・修正によって既存機能が壊れていないかを確認するテストである。',code:'',choices:[],answer:'true',explanation:'バグ修正や機能追加後に既存の機能が影響を受けていないか確認するのが回帰テストです。',points:25},
+  {type:'choice',question:'COBOL単体テストでFILE STATUSを使ったテストで確認すべき値として最も重要なのはどれか？',code:'',choices:['00（正常）と各種エラーコード','00のみ','09のみ','全ての2桁コード','文字コードのみ'],answer:'A',explanation:'FILE STATUSでは正常（"00"）だけでなく、ファイルなし（"35"）、重複キー（"22"）などエラーケースも検証が必要です。',points:25},
+  {type:'choice',question:'テストケースの期待結果（Expected Result）の説明として正しいのはどれか？',code:'',choices:['テスト実行前に仕様から導出した正解値','テスト実行後に記録した実際の出力','テストが成功したと判断する主観的な評価','テスト環境の設定値','テスト担当者の感想'],answer:'A',explanation:'期待結果はテスト実行前に仕様書から事前に決めておく正解値です。実行後に決めるとバイアスがかかります。',points:25},
+  {type:'choice',question:'COBOL数値項目で「0、正数、負数」をテストする際の同値クラスの分け方として適切なのはどれか？',code:'',choices:['負数クラス・0クラス・正数クラスの3分割','正数クラスと0クラスの2分割','全数値を1クラス','偶数クラスと奇数クラス','有効値と無効値の2分割'],answer:'A',explanation:'符号によって処理が変わる可能性があるため、負数・0・正数を別々の同値クラスとして扱うのが適切です。',points:25},
+  {type:'truefalse',question:'ブラックボックステストでは、プログラムの内部実装を知らなくても、仕様書からテストケースを設計できる。',code:'',choices:[],answer:'true',explanation:'ブラックボックステストは外部仕様（入力→出力）のみに基づきテスト設計するため、実装の知識は不要です。',points:25},
+  {type:'choice',question:'テスト網羅基準としてC0<C1<C2の順に網羅率が上がるが、C2（条件網羅）の説明はどれか？',code:'',choices:['各条件の真偽の組み合わせを全て網羅する','全命令を実行する','全分岐を通過する','全パスを実行する','全関数を実行する'],answer:'A',explanation:'C2（条件網羅・マルチプルコンディションカバレッジ）は各条件式の真偽の全組み合わせをテストします。条件が増えると指数的にケースが増えます。',points:25},
+  {type:'choice',question:'テスト工程の順番として正しいのはどれか？',code:'',choices:['単体→結合→システム→受入','結合→単体→システム→受入','システム→単体→結合→受入','単体→システム→結合→受入','受入→システム→結合→単体'],answer:'A',explanation:'V字モデルでは単体（ユニット）→結合（統合）→システム→受入の順でテスト工程が進みます。',points:25},
+  {type:'truefalse',question:'テストは欠陥を取り除くことではなく、欠陥を発見することが目的である。',code:'',choices:[],answer:'true',explanation:'テストは欠陥を「発見」します。発見した欠陥を「修正」するのはデバッグの役割です。',points:25},
+  {type:'choice',question:'ペア（ペアワイズ）テストの説明として正しいのはどれか？',code:'',choices:['任意の2パラメータの組み合わせを全て網羅するテスト設計法','全パラメータの全組み合わせをテストする方法','2人でテストを実施する方法','2つの環境でテストする方法','テストケースを2分割する方法'],answer:'A',explanation:'ペアワイズテスト（All-Pairs）は任意の2つのパラメータの全組み合わせを網羅することで、全組み合わせより大幅にケース数を削減できます。',points:25},
+  {type:'choice',question:'COBOL単体テストでPIC 9(3)の入力検証をする際、有効値「000〜999」と無効値に対する境界値テストセットはどれか？',code:'',choices:['000, 001, 998, 999（有効）/ テスト不可（下限なし）','001, 500, 999','000, 999','001, 999','000〜999の全値'],answer:'A',explanation:'PIC 9(3)は000〜999の範囲。下限000と上限999、およびその内側1, 998が境界値テストの対象です。999を超える入力はPIC上不可能なため実行時エラーになります。',points:25},
+  {type:'truefalse',question:'テストケース設計は開発完了後ではなく、要件定義・設計フェーズから並行して始めるべきである。',code:'',choices:[],answer:'true',explanation:'早期テスト設計（シフトレフト）により要件の曖昧さを早期発見できます。テスト設計で仕様の矛盾が見つかることも多いです。',points:25},
+  {type:'choice',question:'境界値分析で「年齢が0〜120」の入力フィールドのテストケースとして最適なのはどれか？',code:'',choices:['-1, 0, 1, 119, 120, 121','0, 60, 120','0, 120','1, 119','0, 1, 120'],answer:'A',explanation:'境界値分析の標準的なアプローチは境界値(0, 120)とその内側(1, 119)、および無効値(-1, 121)をテストします。',points:25},
+  {type:'choice',question:'テストで使う「テストオラクル」の説明として正しいのはどれか？',code:'',choices:['テスト結果の正誤を判定するための基準・仕組み','テストを実行するツール','テストデータを生成する仕組み','バグ管理システム','テスト環境'],answer:'A',explanation:'テストオラクルは期待結果との比較によりテストのPASS/FAILを判断する基準です。仕様書、過去バージョンの出力、数学的な計算結果などが使われます。',points:25},
+  {type:'truefalse',question:'エラー推測（Error Guessing）はテスト担当者の経験と直感に基づいてバグが潜みそうな箇所をテストする技法である。',code:'',choices:[],answer:'true',explanation:'エラー推測は体系的技法ではなく、経験から「ここはバグが出やすい」と判断してテストを追加する補完的技法です。',points:25},
+  {type:'choice',question:'原因結果グラフ（Cause-Effect Graphing）の説明として正しいのはどれか？',code:'',choices:['入力条件（原因）と出力結果（効果）の論理関係をグラフ化してテストケースを導出する','プログラムの実行フローをグラフ化する','データの流れをグラフ化する','テスト結果をグラフで表示する','バグの分布をグラフ化する'],answer:'A',explanation:'原因結果グラフはブラックボックステスト技法の一つです。入力と出力の論理関係をグラフで表現し、そこからデシジョンテーブルを導出してテストケースを設計します。',points:25},
+  {type:'choice',question:'マトリクス表を使ったデシジョンテーブルで「条件1:Y, 条件2:Y, 条件3:N」のルールが複数の動作を持つ場合の処理はどれか？',code:'',choices:['全ての動作を実行する','最初の動作のみ実行する','最後の動作のみ実行する','ランダムに1つ実行する','エラーとする'],answer:'A',explanation:'デシジョンテーブルで1つのルールに複数の動作（アクション）が対応する場合、通常は全ての動作を実行します。',points:25},
+  {type:'truefalse',question:'テストの独立性を保つために、テスト担当者は自分が開発したコードのテストをできる限り避けるべきである。',code:'',choices:[],answer:'true',explanation:'開発者は自分のコードに対して思い込みがあり見落としが生じやすいです。独立したテスト担当者による検証が重要です。',points:25},
+  {type:'choice',question:'COBOL単体テストでSQL処理のテストをする際に使う「テストダブル」として適切なのはどれか？',code:'',choices:['テスト用DBに事前データを投入してFILE STATUSを検証する','本番DBに直接アクセスする','DBなしで全テストを実施する','スタブDBドライバを使用する','DBアクセス部分はテストしない'],answer:'A',explanation:'COBOL+SQLテストでは実際のテスト用DBに事前データを投入し、SQLCODEやFILE STATUSの値をアサートするのが現実的なアプローチです。',points:25},
+  {type:'choice',question:'テスト密度（Test Density）の説明として正しいのはどれか？',code:'',choices:['コードの規模（LOC等）に対するテストケース数の比率','バグ数に対するテストケース数の比率','実行時間に対するテストケース数の比率','テスト担当者数に対するテストケース数','テスト工程の日数に対するテストケース数'],answer:'A',explanation:'テスト密度はソースコードの規模（行数や機能点数）に対するテストケース数で表します。品質指標の一つとして使われます。',points:25},
+];
+
+let offlineQuizIdx = [];
+let offlineCodingIdx = [];
+let offlineTestcaseIdx = [];
+
+function getOfflineQ(type) {
+  const bank = type==='quiz' ? OFFLINE_QUIZ : type==='coding' ? OFFLINE_CODING : OFFLINE_TESTCASE;
+  let idxArr = type==='quiz' ? offlineQuizIdx : type==='coding' ? offlineCodingIdx : offlineTestcaseIdx;
+  if (idxArr.length === 0) {
+    // 全問使い切ったらシャッフルしてリセット
+    idxArr.length = 0;
+    const arr = bank.map((_,i)=>i).sort(()=>Math.random()-0.5);
+    arr.forEach(i=>idxArr.push(i));
+  }
+  return bank[idxArr.pop()];
+}
 /* =========================================
    TAB
    ========================================= */
@@ -3988,18 +4124,17 @@ function saveRewardEdit() {
    GEMINI API
    ========================================= */
 async function callGemini(prompt, jsonMode = false) {
-  if (!API_KEY) {
-    openKeyModal();
-    throw new Error('APIキーが未設定です。⚙️ から設定してください');
-  }
+  if (!API_KEY) throw new Error('NO_API_KEY');
+  // gemini-2.0-flash-lite = 最安値モデル、500トークンで十分
+  const model = 'gemini-2.0-flash-lite';
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.5, maxOutputTokens: 2000 }
+        generationConfig: { temperature: 0.4, maxOutputTokens: 600 }
       })
     }
   );
@@ -4031,55 +4166,48 @@ async function genQ(type) {
   const themeId = { quiz:'quizTheme', coding:'codingTheme', testcase:'testcaseTheme' }[type];
   const theme   = document.getElementById(themeId).value;
   const chatId  = { quiz:'chatQuiz', coding:'chatCoding', testcase:'chatTestcase' }[type];
+  const loader  = appendAI(chatId, loading());
 
-  const loader = appendAI(chatId, loading());
-
-  try {
-    const raw = await callGemini(buildPrompt(type, theme), true);
-    console.log('[Gemini raw]', raw); // デバッグ用
-    loader.remove();
-    const q = parseJSON(raw);
-    if (!q) throw new Error('JSONパースに失敗しました\n---\n' + raw.slice(0, 200));
-    curQ = q;
-    renderQ(chatId, q, type);
-  } catch (e) {
-    loader.remove();
-    console.error('[genQ error]', e);
-    appendAI(chatId, `❌ 問題生成に失敗しました。<br><small style="color:var(--text3)">${esc(e.message)}</small>`);
+  // API接続できる場合は生成、失敗したらオフライン問題集へフォールバック
+  if (API_KEY) {
+    try {
+      const raw = await callGemini(buildPrompt(type, theme));
+      const q = parseJSON(raw);
+      if (!q) throw new Error('parse');
+      loader.remove();
+      curQ = q;
+      renderQ(chatId, q, type);
+      return;
+    } catch (e) {
+      console.warn('[API失敗 → オフライン問題に切替]', e.message);
+    }
   }
+  // オフラインフォールバック
+  loader.remove();
+  const q = getOfflineQ(type);
+  curQ = q;
+  if (!API_KEY) {
+    appendAI(chatId, '<small style="color:var(--text3)">📚 オフライン問題集より出題（APIキー未設定）</small>');
+  } else {
+    appendAI(chatId, '<small style="color:var(--text3)">📚 オフライン問題集より出題（API接続失敗）</small>');
+  }
+  renderQ(chatId, q, type);
 }
 
 function buildPrompt(type, theme) {
-  const ptBase = { quiz: diff === 'basic' ? 10 : 20, coding: 20, testcase: 25 }[type];
-  const diffTxt = diff === 'basic' ? '初心者向け基礎レベル' : '中級者向け応用レベル';
-
+  const pt = { quiz: diff==='basic'?10:20, coding:20, testcase:25 }[type];
   if (type === 'quiz') {
-    const forms = ['choice','choice','truefalse','description'];
-    const form  = forms[Math.floor(Math.random() * forms.length)];
-    const choicesField = form === 'choice'
-      ? '"choices": ["選択肢A","選択肢B","選択肢C","選択肢D","選択肢E"]'
-      : '"choices": []';
-    const answerHint = form === 'choice' ? 'A〜Eのいずれか1文字' : form === 'truefalse' ? 'true または false' : '正解の記述例';
-    return `COBOLと単体テストの教育専門家として、テーマ「${theme}」の${diffTxt}問題を1問作ってください。
-
-必ずこのJSON形式だけを返してください。説明文・前置き・コードブロック記号は不要です:
-{"type":"${form}","theme":"${theme}","question":"問題文をここに","code":"COBOLコードがあればここに、なければ空文字","${choicesField.replace(/^"/,'').replace(/:.*$/,'')}":${form === 'choice' ? '["A案","B案","C案","D案","E案"]' : '[]'},"answer":"${answerHint}","explanation":"解説を2〜3文で","points":${ptBase}}`;
+    const f = ['choice','choice','truefalse','description'][Math.floor(Math.random()*4)];
+    return `COBOL問題をJSON1行で。テーマ:${theme} 形式:${f}
+{"type":"${f}","question":"問題文","code":"","choices":${f==='choice'?'["A","B","C","D","E"]':'[]'},"answer":"${f==='choice'?'A-E':f==='truefalse'?'true/false':'記述'}","explanation":"解説","points":${pt}}`;
   }
-
   if (type === 'coding') {
-    return `COBOL教育の専門家として、テーマ「${theme}」のCOBOL穴埋め問題を1問作ってください。コードに（A）〜（E）の穴を作り5択形式にしてください。
-
-必ずこのJSON形式だけを返してください。説明文・前置き・コードブロック記号は不要です:
-{"type":"choice","theme":"${theme}","question":"COBOLコードの（　）に当てはまるものを選んでください。","code":"穴埋めCOBOLコード","choices":["選択肢A","選択肢B","選択肢C","選択肢D","選択肢E"],"answer":"正解記号","explanation":"解説2〜3文","points":20}`;
+    return `COBOL穴埋め問題をJSON1行で。テーマ:${theme}
+{"type":"choice","question":"（　）に入るものを選べ","code":"COBOL穴埋めコード（A）","choices":["A","B","C","D","E"],"answer":"A-E","explanation":"解説","points":20}`;
   }
-
-  // testcase
-  const forms = ['choice','truefalse','description'];
-  const form  = forms[Math.floor(Math.random() * forms.length)];
-  return `ソフトウェアテスト教育の専門家として、テーマ「${theme}」のテスト設計問題（境界値/同値分割/デシジョンテーブルのいずれか）を1問作ってください。
-
-必ずこのJSON形式だけを返してください。説明文・前置き・コードブロック記号は不要です:
-{"type":"${form}","theme":"${theme}","question":"問題文","code":"仕様テーブルがあれば、なければ空文字","choices":${form === 'choice' ? '["選択肢A","選択肢B","選択肢C","選択肢D","選択肢E"]' : '[]'},"answer":"${form === 'choice' ? 'A〜Eの1文字' : form === 'truefalse' ? 'true または false' : '記述解答例'}","explanation":"テスト技法を踏まえた解説2〜3文","points":25}`;
+  const f = ['choice','truefalse','description'][Math.floor(Math.random()*3)];
+  return `テスト設計問題をJSON1行で。テーマ:${theme} 技法:境界値/同値分割
+{"type":"${f}","question":"問題文","code":"","choices":${f==='choice'?'["A","B","C","D","E"]':'[]'},"answer":"${f==='choice'?'A-E':f==='truefalse'?'true/false':'記述'}","explanation":"解説","points":25}`;
 }
 
 /* =========================================
